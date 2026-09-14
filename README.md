@@ -48,12 +48,12 @@ single-env deploy. A shop's environment is flipped through the proxy-owned
 
 **Top — external proxy (this POC):** both the prod shop and the sandbox shop hit
 a single `Proxy`, which reads the `Store Shop:Env` KV and forwards each request
-**directly** to the one backend that owns it (Rydership Prod _or_ Rydership
-Sandbox). One hop, no env ever calls another env.
+**directly** to the one backend that owns it (WMS Prod _or_ WMS Sandbox).
+One hop, no env ever calls another env.
 
-**Bottom — built-in ("in-engine") proxy:** every request enters **Rydership
+**Bottom — built-in ("in-engine") proxy:** every request enters **WMS
 Prod** first, whose in-engine proxy decides the target and, for sandbox shops,
-**bounces the request to Rydership Sandbox**. The whiteboard calls out the
+**bounces the request to WMS Sandbox**. The whiteboard calls out the
 negatives directly: _increased load on prod for each sandbox task_ and
 _cross-ENV traffic_.
 
