@@ -1,0 +1,19 @@
+{
+  "include": ["server/**/*.ts", "nitro.config.ts"],
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "paths": {
+      "~/*": ["./server/*"]
+    }
+  }
+}

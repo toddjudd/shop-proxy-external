@@ -6,16 +6,28 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import styles from "./_index/styles.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   return {
     environment: process.env.ENVIRONMENT ?? "unknown",
     proof: process.env.PROOF ?? "none",
+    shop: session.shop,
   };
 };
 
 export default function Index() {
-  const { environment, proof } = useLoaderData<typeof loader>();
+  const { environment, proof, shop } = useLoaderData<typeof loader>();
+  const target = environment === "sandbox" ? "production" : "sandbox";
+
+  const switchEnvironment = async () => {
+    await fetch("/api/switch-env", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shop, target }),
+    });
+    // Reload so the proxy serves the document from the newly selected target.
+    window.location.reload();
+  };
 
   return (
     <s-page heading="Shopify app template">
@@ -28,6 +40,7 @@ export default function Index() {
           Need some proof? I don&apos;t blame you. Here it is:{" "}
           <s-chip color="strong">{proof}</s-chip>
         </s-paragraph>
+        <s-button onClick={switchEnvironment}>Switch to {target}</s-button>
       </s-section>
     </s-page>
   );

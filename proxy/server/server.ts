@@ -1,21 +1,33 @@
 import { defineHandler, proxyRequest } from "nitro/h3";
+import {
+  DEFAULT_TARGET,
+  TARGETS,
+  getShopTarget,
+  getTargetCookie,
+  resolveShop,
+  setTargetCookie,
+} from "./utils/routing.ts";
 
-const TARGETS = {
-  production: process.env.PROD_APP_URL || "http://localhost:3001",
-  sandbox: process.env.SANDBOX_APP_URL || "http://localhost:3002",
-} as const;
+export default defineHandler(async (event) => {
+  const shop = resolveShop(event);
 
-// Flip this to send all traffic at the other copy of the app.
-const ACTIVE_TARGET: keyof typeof TARGETS = "production";
+  // Shop-bearing requests resolve from the KV source of truth and refresh the
+  // sticky cookie; shopless requests (assets) ride that cookie.
+  let activeTarget = DEFAULT_TARGET;
+  if (shop) {
+    activeTarget = (await getShopTarget(shop)) ?? DEFAULT_TARGET;
+    setTargetCookie(event, activeTarget);
+  } else {
+    activeTarget = getTargetCookie(event) ?? DEFAULT_TARGET;
+  }
 
-export default defineHandler((event) => {
   const target = new URL(
     event.url.pathname + event.url.search,
-    TARGETS[ACTIVE_TARGET],
+    TARGETS[activeTarget],
   );
 
   console.log(
-    `[proxy -> ${ACTIVE_TARGET}] ${event.req.method} ${event.url.pathname}`,
+    `[proxy -> ${activeTarget}] ${event.req.method} ${event.url.pathname}`,
   );
 
   // Node's fetch always rewrites Host to the target, so the upstream only
