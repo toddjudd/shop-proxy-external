@@ -29,10 +29,18 @@ const basePath = [join(root, "node_modules", ".bin"), process.env.PATH].join(
 
 /** Env inherited from the Shopify CLI, minus the vars each child must own. */
 function inheritedEnv() {
-  // HOST is the full tunnel URL (with scheme); letting it through makes
-  // srvx/Vite try to bind a listener to that literal string.
-  const { PORT, HMR_PORT, DATABASE_URL, HOST, ...rest } = process.env;
+  const { PORT, HMR_PORT, DATABASE_URL, ...rest } = process.env;
   return { ...rest, PATH: basePath, FORCE_COLOR: "1" };
+}
+
+/**
+ * Env for the Nitro proxy. HOST is the full tunnel URL (with scheme); the
+ * react-router instances need it (vite.config.ts derives SHOPIFY_APP_URL
+ * from it), but srvx tries to bind a listener to that literal string.
+ */
+function proxyEnv() {
+  const { HOST, ...rest } = inheritedEnv();
+  return rest;
 }
 
 function loadInstanceEnv(envFile) {
@@ -97,25 +105,36 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => shutdown(0));
 }
 
-// Each instance has its own SQLite file, so migrate them both up front.
-for (const { name, envFile } of INSTANCES) {
-  const result = spawnSync("prisma migrate deploy", {
-    cwd: root,
-    env: loadInstanceEnv(envFile),
-    shell: true,
-    stdio: "inherit",
+/** Each instance has its own SQLite file, so migrate them concurrently. */
+function migrate(name, envFile) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("prisma migrate deploy", {
+      cwd: root,
+      env: loadInstanceEnv(envFile),
+      shell: true,
+      stdio: "inherit",
+    });
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`prisma migrate deploy failed for "${name}"`));
+    });
   });
-  if (result.status !== 0) {
-    throw new Error(`prisma migrate deploy failed for "${name}"`);
-  }
 }
 
+// The proxy doesn't touch the database, so it can start while migrations run.
 run(
   "proxy",
   "\u001B[33m",
   `nitro dev ./proxy --port ${PROXY_PORT} --host localhost`,
-  inheritedEnv(),
+  proxyEnv(),
 );
+
+await Promise.all(
+  INSTANCES.map(({ name, envFile }) => migrate(name, envFile)),
+).catch((error) => {
+  process.stderr.write(`${error.message}\n`);
+  shutdown(1);
+});
 
 // Both instances share one working directory, so their initial type
 // generation both target .react-router/types/ at once and race on Windows
