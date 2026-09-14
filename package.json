@@ -4,6 +4,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "shopify app dev",
+    "dev:stack": "node ./scripts/dev.mjs",
     "build:proxy": "nitro build ./proxy",
     "dev:proxy": "nitro dev ./proxy",
     "preview:proxy": "nitro preview ./proxy",
@@ -53,6 +54,7 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "dotenv": "^16.4.7",
     "dotenv-cli": "^11.0.0",
     "eslint": "^8.57.1",
     "eslint-import-resolver-typescript": "^3.10.1",

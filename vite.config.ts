@@ -18,22 +18,21 @@ if (
 const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost")
   .hostname;
 
-let hmrConfig;
-if (host === "localhost") {
-  hmrConfig = {
-    protocol: "ws",
-    host: "localhost",
-    port: 64999,
-    clientPort: 64999,
-  };
-} else {
-  hmrConfig = {
-    protocol: "wss",
-    host: host,
-    port: parseInt(process.env.FRONTEND_PORT!) || 8002,
-    clientPort: 443,
-  };
-}
+// Each app instance needs its own HMR port so two copies can run side by side.
+const hmrPort =
+  Number(process.env.HMR_PORT) || parseInt(process.env.FRONTEND_PORT!) || 8002;
+
+// Browsers treat localhost as a secure context, so ws:// HMR isn't blocked as
+// mixed content even when the page loads over the tunnel's https:// origin.
+// This intentionally ignores `host` (the tunnel domain): binding the HMR
+// listener there fails since it doesn't resolve to a local interface, and for
+// same-machine dev there's no need to route HMR through the tunnel at all.
+const hmrConfig = {
+  protocol: "ws" as const,
+  host: "localhost",
+  port: hmrPort,
+  clientPort: hmrPort,
+};
 
 export default defineConfig({
   server: {
@@ -48,10 +47,7 @@ export default defineConfig({
       allow: ["app", "node_modules"],
     },
   },
-  plugins: [
-    reactRouter(),
-    tsconfigPaths(),
-  ],
+  plugins: [reactRouter(), tsconfigPaths()],
   build: {
     assetsInlineLimit: 0,
   },
