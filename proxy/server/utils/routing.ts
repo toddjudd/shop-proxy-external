@@ -32,6 +32,26 @@ export async function setShopTarget(
   await store().setItem(`shop:${shop}`, target);
 }
 
+export type ProxyKvEntry = { key: string; value: unknown };
+
+// Snapshot of every entry in the proxy KV store, used by the /admin view.
+export async function listProxyKv(): Promise<ProxyKvEntry[]> {
+  const kv = store();
+  const keys = await kv.getKeys();
+  const entries = await Promise.all(
+    keys.map(async (key) => ({ key, value: await kv.getItem(key) })),
+  );
+  return entries.sort((a, b) => a.key.localeCompare(b.key));
+}
+
+// Directly set a proxy KV entry by its raw key (as returned by listProxyKv).
+export async function setProxyKv(
+  key: string,
+  target: TargetName,
+): Promise<void> {
+  await store().setItem(key, target);
+}
+
 // The routing cookie keeps asset/subrequests (which carry no shop) on the
 // same environment as the document that loaded them.
 export function setTargetCookie(event: H3Event, target: TargetName): void {
