@@ -44,12 +44,15 @@ export async function listProxyKv(): Promise<ProxyKvEntry[]> {
   return entries.sort((a, b) => a.key.localeCompare(b.key));
 }
 
-// Directly set a proxy KV entry by its raw key (as returned by listProxyKv).
-export async function setProxyKv(
+// Writes a raw KV key from the /admin editor; only existing keys are edited.
+export async function setProxyKvTarget(
   key: string,
   target: TargetName,
-): Promise<void> {
-  await store().setItem(key, target);
+): Promise<boolean> {
+  const kv = store();
+  if (!(await kv.hasItem(key))) return false;
+  await kv.setItem(key, target);
+  return true;
 }
 
 // The routing cookie keeps asset/subrequests (which carry no shop) on the
