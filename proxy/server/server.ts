@@ -4,6 +4,7 @@ import {
   TARGETS,
   getShopTarget,
   getTargetCookie,
+  isTargetName,
   resolveShop,
   setTargetCookie,
 } from "./utils/routing.ts";
@@ -14,7 +15,12 @@ export default defineHandler(async (event) => {
   // Shop-bearing requests resolve from the KV source of truth and refresh the
   // sticky cookie; shopless requests (assets) ride that cookie.
   let activeTarget = DEFAULT_TARGET;
-  if (shop) {
+  if (event.url.pathname === "/whiplash/callback") {
+    // OAuth callback carries no shop and can't rely on the partitioned cookie;
+    // the ?env marker (baked into the registered redirect URI) is the source.
+    const env = event.url.searchParams.get("env");
+    activeTarget = isTargetName(env) ? env : DEFAULT_TARGET;
+  } else if (shop) {
     activeTarget = (await getShopTarget(shop)) ?? DEFAULT_TARGET;
     setTargetCookie(event, activeTarget);
   } else {

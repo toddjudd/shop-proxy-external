@@ -32,3 +32,37 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+// Per-shop Whiplash OAuth connection. Tokens are stored encrypted at rest.
+model WhiplashConnection {
+  id                 String    @id @default(cuid())
+  shop               String    @unique
+  accessToken        String
+  refreshToken       String?
+  expiresAt          DateTime?
+  scope              String?
+  whiplashUserId     Int?
+  whiplashUserEmail  String?
+  whiplashUserName   String?
+  whiplashUserRole   String?
+  // JSON array of { id, name } for customers this token can access.
+  customers          String?
+  selectedCustomerId Int?
+  selectedCustomerName String?
+  status             String    @default("connected")
+  connectedAt        DateTime  @default(now())
+  lastRefreshedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// Short-lived CSRF/PKCE state for an in-flight Whiplash OAuth handshake.
+model WhiplashOAuthState {
+  state        String   @id
+  shop         String
+  codeVerifier String
+  host         String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+}
+
